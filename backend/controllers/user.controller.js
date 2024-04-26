@@ -31,7 +31,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('something went wrong : failed to create user')
     } else {
         res.status(200).json({
-            _id: user.id,
+            _id: user._id,
             name: user.name,
             email: user.email,
             image: user.image,
@@ -63,7 +63,7 @@ const authUser = asyncHandler(async (req, res) => {
 })
 
 const allUsers = asyncHandler(async (req,res) => {
-    console.log(req.query);
+    //console.log(req.query);
     const keyword = req.query.search ? {
         $or: [
             { name: { $regex: req.query.search, $options: 'i' } },
@@ -71,7 +71,7 @@ const allUsers = asyncHandler(async (req,res) => {
         ]
     } : {};
 
-    const users = await User.find(keyword);
+    const users = await User.find(keyword).find({ _id: { $ne: req.user._id}});
     res.send(users)
     // if (!req.query.search) {
     //     const users = await User.find();
