@@ -3,6 +3,7 @@ const { chats } = require('./data/data');
 const dotenv = require("dotenv");
 const connectDB = require('./config/db');
 const userRoutes = require('../backend/routes/user.router.js')
+const {notFound,errorHandler} = require('../backend/middleware/errorMiddleware.js')
 
 dotenv.config();
 connectDB();
@@ -35,6 +36,8 @@ app.use("/api/v1/user", userRoutes);
 //     res.send(singleChat)
 // })
 
+app.use(notFound);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, console.log(
