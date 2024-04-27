@@ -76,8 +76,6 @@ const fetchChats = asyncHandler(async (req, res) => {
     }
    
 })
-
-
 // create new group chat 
 const createGroup = asyncHandler(async (req,res) => {
     if (!req.body.users && !req.body.name) {
@@ -116,7 +114,7 @@ const createGroup = asyncHandler(async (req,res) => {
     }
 
 })
-
+// rename group name 
 const renameGroup = asyncHandler(async(req,res)=> {
     const { chatId, chatName } = req.body;
 
@@ -136,6 +134,44 @@ const renameGroup = asyncHandler(async(req,res)=> {
         res.json(updatedChat)
     }
 })
+// add new membeer to group
+
+const addMember = asyncHandler(async (req, res) => {
+    const { chatId, userId } = req.body;
+
+    const added = await Chat.findByIdAndUpdate(chatId, {
+        $push : {users : userId}},{new : true
+    }).populate('users', '-password')
+        .populate('groupAdmin', '-password')
+    
+    
+    if (!added) {
+        res.status(400);
+        throw new Error("chat not found")
+    } else {
+        res.json(added)
+    }
+})
+
+const removeMember = asyncHandler(async (req, res) => {
+    const { chatId, userId } = req.body;
+    //console.log("in remove member controller",chatId,userId);
+
+    const removed = await Chat.findByIdAndUpdate(chatId, {
+        $pull: { users: userId }
+    }, {
+        new: true
+    }).populate('users', '-password')
+        .populate('groupAdmin', '-password')
 
 
-    module.exports = { accessChat, fetchChats, createGroup ,renameGroup}
+    if (!removed) {
+        res.status(400);
+        throw new Error("chat not found")
+    } else {
+        res.json(removed)
+    }
+})
+
+
+    module.exports = { accessChat, fetchChats, createGroup ,renameGroup,addMember,removeMember}
