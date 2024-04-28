@@ -112,7 +112,7 @@ const Signup = () => {
             })
 
             localStorage.setItem('user-info', JSON.stringify(data))
-            console.log(data);
+            //console.log(data);
             setLoading(false)
             history.push('/chats')
         } catch (error) {

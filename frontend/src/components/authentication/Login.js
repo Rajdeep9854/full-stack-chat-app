@@ -59,7 +59,7 @@ export const Login = () => {
         position:'bottom'
       })
       localStorage.setItem('user-info', JSON.stringify(data));
-      console.log(JSON.stringify(data));
+      //console.log(JSON.stringify(data));
       setLoading(false);
       history.push('/chats')
     } catch (error) {
