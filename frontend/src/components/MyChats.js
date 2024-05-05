@@ -10,7 +10,7 @@ import { getSender } from '../config/ChatLogics';
 
 
 
-const MyChats = () => {
+const MyChats = ({fetchAgain}) => {
 
   const [loggedUser , setLoggedUser] = useState()
   const { user, setSelectedChat, chats, setChats,selectedChat } = ChatState();
@@ -48,7 +48,7 @@ const MyChats = () => {
     setLoggedUser(JSON.parse(localStorage.getItem("user-info")));
     fetchChats();
     
-  }, []);
+  }, [fetchAgain]);
 
   
   return (
