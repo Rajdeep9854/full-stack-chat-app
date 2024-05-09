@@ -5,9 +5,9 @@ const Chat= require('../models/chatModel.js')
 
 
 const sendMessage = asyncHandler(async (req, res) => {
-    const { content, chat } = req.body;
+    const { content, chatId } = req.body;
 
-    if (!content || !chat) {
+    if (!content || !chatId) {
         console.log("Invalid data passed into the request");
         return res.sendStatus(400);
     }
@@ -15,7 +15,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     var newMessage = {
         sender: req.user._id,
         content: content,
-        chat : chat
+        chat : chatId
     }
 
     try {
