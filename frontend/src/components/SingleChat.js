@@ -8,17 +8,24 @@ import ProfileModal from '../miscellaneous/ProfileModal.js'
 import UpdateGroupChatModal from '../miscellaneous/UpdateGroupChatModal.js';
 import axios from 'axios';
 import ScrollableChat from './ScrollableChat.js';
+import io from "socket.io-client";
+import Lottie from 'react-lottie'
 //import { sendMessage } from '../../../backend/controllers/message.controller.js';
+const ENDPOINT = "http://localhost:5000"; // "https://talk-a-tive.herokuapp.com"; -> After deployment
+var socket, selectedChatCompare;
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState();
     const [loading, setLoading] = useState(false);
+    const [socketConnected, setSocketConnected] = useState(false);
+    const [typing, setTyping] = useState(false);
+    const [istyping, setIsTyping] = useState(false);
 
     const toast = useToast();
     
-    const { user, selectedChat, setSelectedChat } = ChatState();
+    const { user, selectedChat, setSelectedChat,notification,setNotification } = ChatState();
 
     const fetchMessages = async () => {
         if (!selectedChat) return;
@@ -36,6 +43,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             //console.log(messages);
             setMessages(data);
             setLoading(false)
+            socket.emit('join chat',selectedChat._id)
         } catch (error) {
             toast({
                 title: "Error Occured!",
@@ -47,28 +55,23 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             });
         }
     }
-    
-    useEffect(() => {
-        fetchMessages();
-    }, [selectedChat])
-    
 
-
-    const sendMessage = async(event) => {
+    const sendMessage = async (event) => {
         if (event.key === 'Enter' && newMessage) {
             try {
                 const config = {
                     headers: {
                         "Content-type": 'application/json',
-                        Authorization : `Bearer ${user.token}`
+                        Authorization: `Bearer ${user.token}`
                     }
                 }
                 setNewMessage("")
-                const {data} = await axios.post('/api/v1/message', {
+                const { data } = await axios.post('/api/v1/message', {
                     content: newMessage,
-                    chatId : selectedChat._id
+                    chatId: selectedChat._id
                 }, config)
                 //console.log(data);
+                socket.emit("new message", data);
                 setMessages([...messages, data]);
             } catch (error) {
                 toast({
@@ -81,13 +84,71 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
                 });
             }
         } else {
-            
+
         }
     }
+    
+    useEffect(() => {
+        fetchMessages();
+    }, [selectedChat])
+    
 
-    const typingHandler = (event) => {
-        setNewMessage(event.target.value)
-    }
+
+    
+
+    useEffect(() => {
+        socket = io(ENDPOINT);
+        socket.emit("setup", user);
+        socket.on("connected", () => setSocketConnected(true));
+        socket.on("typing", () => setIsTyping(true));
+        socket.on("stop typing", () => setIsTyping(false));
+
+        // eslint-disable-next-line
+    }, []);
+
+    useEffect(() => {
+        fetchMessages();
+
+        selectedChatCompare = selectedChat;
+        // eslint-disable-next-line
+    }, [selectedChat]);
+
+    useEffect(() => {
+        socket.on("message recieved", (newMessageRecieved) => {
+            if (
+                !selectedChatCompare || // if chat is not selected or doesn't match current chat
+                selectedChatCompare._id !== newMessageRecieved.chat._id
+            ) {
+                if (!notification.includes(newMessageRecieved)) {
+                    setNotification([newMessageRecieved, ...notification]);
+                    setFetchAgain(!fetchAgain);
+                }
+            } else {
+                setMessages([...messages, newMessageRecieved]);
+            }
+        });
+    });
+
+    const typingHandler = (e) => {
+        setNewMessage(e.target.value);
+
+        if (!socketConnected) return;
+
+        if (!typing) {
+            setTyping(true);
+            socket.emit("typing", selectedChat._id);
+        }
+        let lastTypingTime = new Date().getTime();
+        var timerLength = 3000;
+        setTimeout(() => {
+            var timeNow = new Date().getTime();
+            var timeDiff = timeNow - lastTypingTime;
+            if (timeDiff >= timerLength && typing) {
+                socket.emit("stop typing", selectedChat._id);
+                setTyping(false);
+            }
+        }, timerLength);
+    };
   return (
       <>
           {selectedChat ? (
@@ -154,7 +215,19 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
                           onKeyDown={sendMessage}
                           isRequired
                           mt={3}
-                        >
+                      >
+                          {istyping ? (
+                              <div>
+                                  <Lottie
+                                      options={defaultOptions}
+                                      // height={50}
+                                      width={70}
+                                      style={{ marginBottom: 15, marginLeft: 0 }}
+                                  />
+                              </div>
+                          ) : (
+                              <></>
+                          )}
                           <Input variant="filled"
                               bg="#E0E0E0"
                               placeholder="Enter a message.."
